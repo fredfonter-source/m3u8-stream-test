@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Raw HLS Streaming Test</title>
+    <!-- Include the HLS library so standard browsers can read .m3u8 streams -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+        video { width: 100%; max-width: 800px; background: #000; margin-top: 20px; }
+        input, button { padding: 10px; font-size: 16px; margin: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Direct Movie Stream Tester</h1>
+    <p>Enter a TMDb Movie ID below to fetch its direct .m3u8 link:</p>
+    
+    <input type="text" id="tmdbId" value="550" placeholder="e.g. 550 for Fight Club">
+    <button onclick="loadStream()">Fetch & Play Stream</button>
+
+    <div id="status"></div>
+    <video id="videoPlayer" controls></video>
+
+    <script>
+    async function loadStream() {
+        const id = document.getElementById('tmdbId').value;
+        const statusDiv = document.getElementById('status');
+        const video = document.getElementById('videoPlayer');
+        
+        statusDiv.innerText = "Fetching clean API stream data...";
+
+        try {
+            // Fetch direct JSON playback payload without writing server-side scraper logic
+            const response = await fetch(`https://vidlink.pro{id}`);
+            const data = await response.json();
+
+            // Extract the deep nested .m3u8 URL from the stream choices
+            const m3u8Url = data.stream?.hls || data.hls;
+
+            if (!m3u8Url) {
+                statusDiv.innerText = "❌ No active .m3u8 source found for this ID.";
+                return;
+            }
+
+            statusDiv.innerHTML = `🎉 Success! Found stream: <br><code style="color: #00ff00;">${m3u8Url}</code>`;
+
+            // Load the stream into the video player engine
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(m3u8Url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native fallback support for Safari browsers
+                video.src = m3u8Url;
+                video.addEventListener('loadedmetadata', () => video.play());
+            }
+
+        } catch (error) {
+            console.error(error);
+            statusDiv.innerText = "❌ API Error or link expired. Try another movie ID.";
+        }
+    }
+    </script>
+</body>
+</html>
