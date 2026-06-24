@@ -36,19 +36,14 @@
         const video = document.getElementById('videoPlayer');
         
         statusDiv.style.color = "#fff";
-        statusDiv.innerText = "Bypassing API restrictions...";
+        statusDiv.innerText = "Bypassing API restrictions via CorsProxy...";
 
         try {
-            // Setup a public reverse proxy to prevent client-side browser CORS blocking errors
-            const proxyUrl = "https://herokuapp.com";
+            // UPDATED: Using corsproxy.io as a stable middleman to bypass browser CORS blocking
             const targetApi = `https://vidlink.pro{id}`;
+            const proxyUrl = `https://corsproxy.io{encodeURIComponent(targetApi)}`;
             
-            const response = await fetch(proxyUrl + targetApi, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
+            const response = await fetch(proxyUrl);
             if (!response.ok) throw new Error("Proxy error");
 
             const data = await response.json();
@@ -65,7 +60,7 @@
             statusDiv.style.color = "#00ff00";
             statusDiv.innerHTML = `🎉 Success! Found stream: <br><code style="word-break: break-all;">${m3u8Url}</code>`;
 
-            // Clear any old video sources
+            // Clear any old video sources to prepare a clean initialization
             video.src = "";
 
             // Load and execute the live stream into the browser playback component
@@ -83,7 +78,7 @@
         } catch (error) {
             console.error(error);
             statusDiv.style.color = "#ff3333";
-            statusDiv.innerHTML = `❌ Proxy Connection Blocked.<br><small style="color: #bbb;">You need to activate the server proxy first: <br>1. Open <a href="https://herokuapp.comcorsdemo" target="_blank" style="color:#00ffff; font-weight:bold;">Cors Demo Server</a> in a new tab.<br>2. Click "Request temporary access".<br>3. Return here and click Fetch again.</small>`;
+            statusDiv.innerText = "❌ API Connection Error. Ensure the input ID is correct and your VPN is turned off.";
         }
     }
     </script>
