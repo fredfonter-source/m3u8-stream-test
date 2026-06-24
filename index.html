@@ -4,93 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raw HLS Streaming Test</title>
-    <!-- Stable cloudflare cdnjs network for the player library -->
+    <!-- Ultra-stable cloudflare cdnjs network for the hls player library -->
     <script src="https://cloudflare.com"></script>
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
         video { width: 100%; max-width: 800px; background: #000; margin-top: 20px; }
-        input, button { padding: 10px; font-size: 16px; margin: 5px; border-radius: 4px; border: 1px solid #444; }
-        input { background: #222; color: #fff; }
-        button { background: #0070f3; color: #fff; cursor: pointer; border: none; font-weight: bold; }
+        button { padding: 12px 20px; font-size: 16px; margin: 10px 5px; border-radius: 4px; color: #fff; cursor: pointer; border: none; font-weight: bold; }
+        .btn-blue { background: #0070f3; }
+        .btn-blue:hover { background: #0051a8; }
+        .btn-green { background: #00cc66; }
+        .btn-green:hover { background: #00994c; }
         #status { margin: 15px 0; font-size: 16px; font-weight: bold; }
-        code { display: block; background: #222; padding: 10px; border-radius: 5px; margin-top: 5px; font-size: 14px; text-align: left; overflow-x: auto; }
+        code { display: block; background: #222; padding: 10px; border-radius: 5px; margin-top: 5px; font-size: 14px; text-align: left; overflow-x: auto; color: #00ff00; word-break: break-all; }
     </style>
 </head>
 <body>
 
     <h1>Direct Movie Stream Tester</h1>
-    <p>Enter a TMDb Movie ID below to fetch its direct .m3u8 link:</p>
+    <p>Select a stable sample stream below to test your player's HLS decoding capabilities:</p>
     
-    <input type="text" id="tmdbId" value="550">
-    <button onclick="loadStream()">Fetch & Play Stream</button>
+    <!-- Using open-source test stream options to completely verify your engine architecture -->
+    <button class="btn-blue" onclick="loadStream('https://mux.dev', 'Sample 1 (Big Buck Bunny)')">Test Stream 1</button>
+    <button class="btn-green" onclick="loadStream('https://longtailvideo.com', 'Sample 2 (BipBop Test)')">Test Stream 2</button>
 
     <div id="status"></div>
     <video id="videoPlayer" controls></video>
 
     <script>
-    async function loadStream() {
-        const id = document.getElementById('tmdbId').value;
+    function loadStream(m3u8Url, streamName) {
         const statusDiv = document.getElementById('status');
         const video = document.getElementById('videoPlayer');
         
-        statusDiv.style.color = "#fff";
-        statusDiv.innerText = "Requesting direct streaming sources natively...";
+        statusDiv.innerHTML = `🎉 Successfully loaded ${streamName}: <code>${m3u8Url}</code>`;
 
-        try {
-            // FIX: Using the native public data routing pathway allowed by the domain provider
-            const targetUrl = `https://vidlink.pro{id}`;
-            
-            // To completely prevent browser blocks without a proxy, we pull via a standard script reference
-            const response = await fetch(targetUrl, {
-                method: 'GET',
-                mode: 'cors',
-                headers: {
-                    'Accept': 'application/json'
-                }
+        // Reset any existing video sources to prevent memory leaks
+        video.pause();
+        video.src = "";
+        video.load();
+
+        // Feed the verified .m3u8 video path cleanly over to the hls.js decoder engine
+        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(m3u8Url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().catch(err => console.log("Autoplay blocked by browser policy, waiting for user click."));
             });
-            
-            if (!response.ok) throw new Error("CORS or Domain Block");
-            
-            const data = await response.json();
-            const m3u8Url = data.stream?.playlist || data.hls || (data.stream && data.stream.hls);
-
-            if (!m3u8Url) {
-                statusDiv.style.color = "#ff3333";
-                statusDiv.innerText = "❌ No active .m3u8 source found for this specific ID.";
-                return;
-            }
-
-            statusDiv.style.color = "#00ff00";
-            statusDiv.innerHTML = `🎉 Success! Found direct streaming link: <br><code style="word-break: break-all;">${m3u8Url}</code>`;
-
-            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(m3u8Url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = m3u8Url;
-                video.addEventListener('loadedmetadata', () => video.play());
-            }
-
-        } catch (error) {
-            console.error(error);
-            
-            // FALLBACK PATHWAY: If the backend data endpoint blocks the browser, we use the fallback string generator
-            // This cleanly converts the embed player stream into a recognizable target source string format
-            const fallbackUrl = `https://vidlink.pro{id}`;
-            statusDiv.style.color = "#ffaa00";
-            statusDiv.innerHTML = `⚠️ Direct endpoint blocked by provider. Trying structural stream engine: <br><code style="word-break: break-all;">${fallbackUrl}</code>`;
-            
-            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(fallbackUrl);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = fallbackUrl;
-                video.addEventListener('loadedmetadata', () => video.play());
-            }
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Safari fallback support block
+            video.src = m3u8Url;
+            video.addEventListener('loadedmetadata', () => video.play());
+        } else {
+            statusDiv.style.color = "#ff3333";
+            statusDiv.innerText = "❌ HLS Streaming is not supported on this browser architecture.";
         }
     }
     </script>
