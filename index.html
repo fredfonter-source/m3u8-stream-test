@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raw HLS Streaming Test</title>
-    <!-- Include the full, corrected path to the hls.js library script -->
     <script src="https://jsdelivr.net"></script>
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
@@ -12,9 +11,7 @@
         input, button { padding: 10px; font-size: 16px; margin: 5px; border-radius: 4px; border: 1px solid #444; }
         input { background: #222; color: #fff; }
         button { background: #0070f3; color: #fff; cursor: pointer; border: none; font-weight: bold; }
-        button:hover { background: #0051a8; }
         #status { margin: 15px 0; font-size: 16px; font-weight: bold; }
-        code { display: block; background: #222; padding: 10px; border-radius: 5px; margin-top: 5px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -22,8 +19,7 @@
     <h1>Direct Movie Stream Tester</h1>
     <p>Enter a TMDb Movie ID below to fetch its direct .m3u8 link:</p>
     
-    <!-- Defaulting to 550 (Fight Club) for reliable initial testing -->
-    <input type="text" id="tmdbId" value="550" placeholder="e.g. 550 for Fight Club">
+    <input type="text" id="tmdbId" value="550">
     <button onclick="loadStream()">Fetch & Play Stream</button>
 
     <div id="status"></div>
@@ -36,41 +32,21 @@
         const video = document.getElementById('videoPlayer');
         
         statusDiv.style.color = "#fff";
-        statusDiv.innerText = "Bypassing API restrictions via CorsProxy...";
+        statusDiv.innerText = "Attempting stream collection...";
 
         try {
-            // UPDATED: Using corsproxy.io as a stable middleman to bypass browser CORS blocking
-            const targetApi = `https://vidlink.pro{id}`;
-            const proxyUrl = `https://corsproxy.io{encodeURIComponent(targetApi)}`;
-            
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error("Proxy error");
-
-            const data = await response.json();
-
-            // Extract the deep-nested playlist path from the API response payload
-            const m3u8Url = data.stream?.playlist || data.hls || (data.stream && data.stream.hls);
-
-            if (!m3u8Url) {
-                statusDiv.style.color = "#ff3333";
-                statusDiv.innerText = "❌ No active .m3u8 source found for this ID.";
-                return;
-            }
+            // UPDATED: Directly targeting the stream source link without intermediate proxy configs
+            const m3u8Url = `https://vidlink.pro{id}`;
 
             statusDiv.style.color = "#00ff00";
-            statusDiv.innerHTML = `🎉 Success! Found stream: <br><code style="word-break: break-all;">${m3u8Url}</code>`;
+            statusDiv.innerHTML = `🎉 Initializing Player Engine for ID: ${id}`;
 
-            // Clear any old video sources to prepare a clean initialization
-            video.src = "";
-
-            // Load and execute the live stream into the browser playback component
             if (Hls.isSupported()) {
                 const hls = new Hls();
                 hls.loadSource(m3u8Url);
                 hls.attachMedia(video);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Native fallback engine execution block for Apple Safari web browsers
                 video.src = m3u8Url;
                 video.addEventListener('loadedmetadata', () => video.play());
             }
@@ -78,7 +54,7 @@
         } catch (error) {
             console.error(error);
             statusDiv.style.color = "#ff3333";
-            statusDiv.innerText = "❌ API Connection Error. Ensure the input ID is correct and your VPN is turned off.";
+            statusDiv.innerText = "❌ Playback Initialization Failed.";
         }
     }
     </script>
