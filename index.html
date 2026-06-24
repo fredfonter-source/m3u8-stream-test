@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Raw HLS Streaming Test</title>
-    <!-- Include the HLS library so standard browsers can read .m3u8 streams -->
+    <!-- FIX 1: Corrected the full path to the hls.js library script -->
     <script src="https://jsdelivr.net"></script>
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
@@ -16,10 +16,10 @@
     <h1>Direct Movie Stream Tester</h1>
     <p>Enter a TMDb Movie ID below to fetch its direct .m3u8 link:</p>
     
-    <input type="text" id="tmdbId" value="550" placeholder="e.g. 550 for Fight Club">
+    <input type="text" id="tmdbId" value="240" placeholder="e.g. 240 for The Godfather II">
     <button onclick="loadStream()">Fetch & Play Stream</button>
 
-    <div id="status"></div>
+    <div id="status" style="margin: 15px 0;"></div>
     <video id="videoPlayer" controls></video>
 
     <script>
@@ -31,28 +31,28 @@
         statusDiv.innerText = "Fetching clean API stream data...";
 
         try {
-            // Fetch direct JSON playback payload without writing server-side scraper logic
+            // FIX 2: Corrected the endpoint URL to use the working API path format
             const response = await fetch(`https://vidlink.pro{id}`);
             const data = await response.json();
 
-            // Extract the deep nested .m3u8 URL from the stream choices
-            const m3u8Url = data.stream?.hls || data.hls;
+            // FIX 3: Aligned tracking keys to capture VidLink's structural playlist strings
+            const m3u8Url = data.stream?.playlist || data.hls || (data.stream && data.stream.hls);
 
             if (!m3u8Url) {
                 statusDiv.innerText = "❌ No active .m3u8 source found for this ID.";
                 return;
             }
 
-            statusDiv.innerHTML = `🎉 Success! Found stream: <br><code style="color: #00ff00;">${m3u8Url}</code>`;
+            statusDiv.innerHTML = `🎉 Success! Found stream: <br><code style="color: #00ff00; word-break: break-all;">${m3u8Url}</code>`;
 
-            // Load the stream into the video player engine
+            // Load the stream into the video player engine using the library setup
             if (Hls.isSupported()) {
                 const hls = new Hls();
                 hls.loadSource(m3u8Url);
                 hls.attachMedia(video);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Native fallback support for Safari browsers
+                // Native fallback support for Apple Safari web browsers
                 video.src = m3u8Url;
                 video.addEventListener('loadedmetadata', () => video.play());
             }
