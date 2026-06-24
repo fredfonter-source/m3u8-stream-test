@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raw HLS Streaming Test</title>
-    <script src="https://jsdelivr.net"></script>
+    
+    <!-- FIX: Replaced broken jsdelivr CDN link with the ultra-stable cloudflare cdnjs network -->
+    <script src="https://cloudflare.com"></script>
+    
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
         video { width: 100%; max-width: 800px; background: #000; margin-top: 20px; }
@@ -32,16 +35,17 @@
         const video = document.getElementById('videoPlayer');
         
         statusDiv.style.color = "#fff";
-        statusDiv.innerText = "Attempting stream collection...";
+        statusDiv.innerText = "Connecting to streaming sources...";
 
         try {
-            // UPDATED: Directly targeting the stream source link without intermediate proxy configs
+            // Target the raw file delivery payload link directly
             const m3u8Url = `https://vidlink.pro{id}`;
 
             statusDiv.style.color = "#00ff00";
-            statusDiv.innerHTML = `🎉 Initializing Player Engine for ID: ${id}`;
+            statusDiv.innerHTML = `🎉 HLS Engine Initialized for Movie ID: ${id}`;
 
-            if (Hls.isSupported()) {
+            // Make sure the Hls library object successfully attached itself to the window scope
+            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
                 const hls = new Hls();
                 hls.loadSource(m3u8Url);
                 hls.attachMedia(video);
@@ -49,12 +53,14 @@
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = m3u8Url;
                 video.addEventListener('loadedmetadata', () => video.play());
+            } else {
+                throw new Error("HLS library missing or browser unsupported.");
             }
 
         } catch (error) {
             console.error(error);
             statusDiv.style.color = "#ff3333";
-            statusDiv.innerText = "❌ Playback Initialization Failed.";
+            statusDiv.innerText = "❌ Playback Engine Error: Script Asset Network Connection Denied.";
         }
     }
     </script>
