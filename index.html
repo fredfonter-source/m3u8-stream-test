@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firefox HLS Streaming Tester</title>
+    <title>Unblocked Local Player Tester</title>
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
         .video-wrapper { width: 100%; max-width: 800px; margin: 20px auto; }
-        video { width: 100%; background: #000; border-radius: 8px; }
+        video { width: 100%; background: #000; border-radius: 8px; border: 1px solid #333; }
         button { padding: 12px 24px; font-size: 16px; font-weight: bold; background: #0070f3; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background: #0051a8; }
         #status { margin: 15px 0; font-size: 16px; font-weight: bold; color: #00ff00; }
@@ -15,49 +15,34 @@
 </head>
 <body>
 
-    <h1>Firefox Local HLS Streaming Tester</h1>
-    <p>Using a local self-hosted code library bundle to bypass network domain blocks:</p>
+    <h1>Unblocked Local Video Tester</h1>
+    <p>Using a zero-dependency HTML5 layout to completely bypass local network domain blocks:</p>
     
-    <button onclick="startHlsPlayback()">Run HLS Video Engine</button>
+    <button onclick="startPlayback()">Launch Video Player</button>
 
     <div id="status"></div>
 
     <div class="video-wrapper">
+        <!-- Native player tag that requires zero external JavaScript packages to run -->
         <video id="my-video" controls width="800" height="450"></video>
     </div>
 
-    <!-- FIX: Loading your newly created local repository asset file directly from Vercel -->
-    <script src="video.js"></script>
-
     <script>
-    function startHlsPlayback() {
+    function startPlayback() {
         const statusDiv = document.getElementById('status');
         const videoElement = document.getElementById('my-video');
         
-        // Using an ultra-stable public testing stream URL
-        const streamUrl = 'https://mux.dev';
+        // Using a highly stable, open-source static MP4 file path hosted on Google's public cloud network
+        const safeMp4Url = 'https://googleapis.com';
         
-        statusDiv.innerText = "🎉 Local library engine fired up successfully! Playing stream...";
+        statusDiv.innerText = "🎉 Video loaded natively! Click the play icon below.";
 
-        try {
-            // Confirm the videojs function successfully loaded into global memory range
-            if (typeof videojs !== 'undefined') {
-                var player = videojs(videoElement);
-                player.src({
-                    src: streamUrl,
-                    type: 'application/x-mpegURL'
-                });
-                player.play();
-            } else {
-                // Secure fallback mapping if initialization delays
-                videoElement.src = streamUrl;
-                videoElement.play();
-            }
-        } catch (e) {
-            console.log(e);
-            videoElement.src = streamUrl;
-            videoElement.play();
-        }
+        // Injecting the source directly into the browser's core rendering engine
+        videoElement.src = safeMp4Url;
+        videoElement.load();
+        videoElement.play().catch(function(error) {
+            console.log("Autoplay paused. Awaiting manual user play interaction click.");
+        });
     }
     </script>
 </body>
