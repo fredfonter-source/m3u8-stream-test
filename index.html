@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raw HLS Streaming Test</title>
-    
-    <!-- FIX: Replaced broken jsdelivr CDN link with the ultra-stable cloudflare cdnjs network -->
+    <!-- Stable cloudflare cdnjs network for the player library -->
     <script src="https://cloudflare.com"></script>
-    
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
         video { width: 100%; max-width: 800px; background: #000; margin-top: 20px; }
@@ -15,6 +13,7 @@
         input { background: #222; color: #fff; }
         button { background: #0070f3; color: #fff; cursor: pointer; border: none; font-weight: bold; }
         #status { margin: 15px 0; font-size: 16px; font-weight: bold; }
+        code { display: block; background: #222; padding: 10px; border-radius: 5px; margin-top: 5px; font-size: 14px; text-align: left; overflow-x: auto; }
     </style>
 </head>
 <body>
@@ -35,16 +34,34 @@
         const video = document.getElementById('videoPlayer');
         
         statusDiv.style.color = "#fff";
-        statusDiv.innerText = "Connecting to streaming sources...";
+        statusDiv.innerText = "Requesting direct stream payload...";
 
         try {
-            // Target the raw file delivery payload link directly
-            const m3u8Url = `https://vidlink.pro{id}`;
+            // 1. Target VidLink's structural backend data url rather than their browser embed interface
+            const targetApi = `https://vidlink.pro{id}`;
+            
+            // 2. Wrap it in a public proxy wrapper so the host lets your browser fetch the content
+            const proxyUrl = `https://corsproxy.io{encodeURIComponent(targetApi)}`;
+            
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error("Network response was not ok");
+            
+            const data = await response.json();
 
+            // 3. Extract the nested playlist property from the VidLink response object
+            const m3u8Url = data.stream?.playlist || data.hls || (data.stream && data.stream.hls);
+
+            if (!m3u8Url) {
+                statusDiv.style.color = "#ff3333";
+                statusDiv.innerText = "❌ No active .m3u8 source found in the response for this ID.";
+                return;
+            }
+
+            // Print out the extracted link text on the screen for you to copy
             statusDiv.style.color = "#00ff00";
-            statusDiv.innerHTML = `🎉 HLS Engine Initialized for Movie ID: ${id}`;
+            statusDiv.innerHTML = `🎉 Success! Found direct streaming link: <br><code style="word-break: break-all;">${m3u8Url}</code>`;
 
-            // Make sure the Hls library object successfully attached itself to the window scope
+            // 4. Initialize and feed the raw string over to the hls.js decoder engine
             if (typeof Hls !== 'undefined' && Hls.isSupported()) {
                 const hls = new Hls();
                 hls.loadSource(m3u8Url);
@@ -53,14 +70,12 @@
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = m3u8Url;
                 video.addEventListener('loadedmetadata', () => video.play());
-            } else {
-                throw new Error("HLS library missing or browser unsupported.");
             }
 
         } catch (error) {
             console.error(error);
             statusDiv.style.color = "#ff3333";
-            statusDiv.innerText = "❌ Playback Engine Error: Script Asset Network Connection Denied.";
+            statusDiv.innerText = "❌ Connection Failed. The third-party domain might be under heavy traffic load.";
         }
     }
     </script>
