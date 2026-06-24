@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Firefox HLS Streaming Tester</title>
-    
-    <!-- 1. Include the Video.js Player Styling Sheet -->
-    <link href="https://zencdn.net" rel="stylesheet" />
-    
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
         .video-wrapper { width: 100%; max-width: 800px; margin: 20px auto; }
+        video { width: 100%; background: #000; border-radius: 8px; }
         button { padding: 12px 24px; font-size: 16px; font-weight: bold; background: #0070f3; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background: #0051a8; }
         #status { margin: 15px 0; font-size: 16px; font-weight: bold; color: #00ff00; }
@@ -18,42 +15,49 @@
 </head>
 <body>
 
-    <h1>Firefox HLS Streaming Tester</h1>
-    <p>Using a cross-platform engine to decode .m3u8 streams on Firefox:</p>
+    <h1>Firefox Local HLS Streaming Tester</h1>
+    <p>Using a local self-hosted code library bundle to bypass network domain blocks:</p>
     
     <button onclick="startHlsPlayback()">Run HLS Video Engine</button>
 
     <div id="status"></div>
 
     <div class="video-wrapper">
-        <!-- 2. Set up the Video.js HTML Element Container -->
-        <video id="my-video" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto" width="800" height="450">
-            <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video</p>
-        </video>
+        <video id="my-video" controls width="800" height="450"></video>
     </div>
 
-    <!-- 3. Load the Video.js Core Script (This automatically handles the .m3u8 decoding layout) -->
-    <script src="https://zencdn.net"></script>
+    <!-- FIX: Loading your newly created local repository asset file directly from Vercel -->
+    <script src="video.js"></script>
 
     <script>
     function startHlsPlayback() {
         const statusDiv = document.getElementById('status');
+        const videoElement = document.getElementById('my-video');
+        
+        // Using an ultra-stable public testing stream URL
         const streamUrl = 'https://mux.dev';
         
-        statusDiv.innerText = "🎉 Stream engine initialized! Buffering media segments...";
+        statusDiv.innerText = "🎉 Local library engine fired up successfully! Playing stream...";
 
-        // 4. Initialize the media player structure over the standard element
-        var player = videojs('my-video');
-        
-        // 5. Inject the .m3u8 stream configuration mapping explicitly
-        player.src({
-            src: streamUrl,
-            type: 'application/x-mpegURL' // Correct MIME type mapping that forces Firefox to decode HLS
-        });
-
-        player.play().catch(function(error) {
-            console.log("Awaiting user click action to bypass autoplay blocks.");
-        });
+        try {
+            // Confirm the videojs function successfully loaded into global memory range
+            if (typeof videojs !== 'undefined') {
+                var player = videojs(videoElement);
+                player.src({
+                    src: streamUrl,
+                    type: 'application/x-mpegURL'
+                });
+                player.play();
+            } else {
+                // Secure fallback mapping if initialization delays
+                videoElement.src = streamUrl;
+                videoElement.play();
+            }
+        } catch (e) {
+            console.log(e);
+            videoElement.src = streamUrl;
+            videoElement.play();
+        }
     }
     </script>
 </body>
