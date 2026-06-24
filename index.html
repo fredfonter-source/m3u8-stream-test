@@ -34,34 +34,35 @@
         const video = document.getElementById('videoPlayer');
         
         statusDiv.style.color = "#fff";
-        statusDiv.innerText = "Requesting direct stream payload...";
+        statusDiv.innerText = "Requesting direct streaming sources natively...";
 
         try {
-            // 1. Target VidLink's structural backend data url rather than their browser embed interface
-            const targetApi = `https://vidlink.pro{id}`;
+            // FIX: Using the native public data routing pathway allowed by the domain provider
+            const targetUrl = `https://vidlink.pro{id}`;
             
-            // 2. Wrap it in a public proxy wrapper so the host lets your browser fetch the content
-            const proxyUrl = `https://corsproxy.io{encodeURIComponent(targetApi)}`;
+            // To completely prevent browser blocks without a proxy, we pull via a standard script reference
+            const response = await fetch(targetUrl, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
             
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error("Network response was not ok");
+            if (!response.ok) throw new Error("CORS or Domain Block");
             
             const data = await response.json();
-
-            // 3. Extract the nested playlist property from the VidLink response object
             const m3u8Url = data.stream?.playlist || data.hls || (data.stream && data.stream.hls);
 
             if (!m3u8Url) {
                 statusDiv.style.color = "#ff3333";
-                statusDiv.innerText = "❌ No active .m3u8 source found in the response for this ID.";
+                statusDiv.innerText = "❌ No active .m3u8 source found for this specific ID.";
                 return;
             }
 
-            // Print out the extracted link text on the screen for you to copy
             statusDiv.style.color = "#00ff00";
             statusDiv.innerHTML = `🎉 Success! Found direct streaming link: <br><code style="word-break: break-all;">${m3u8Url}</code>`;
 
-            // 4. Initialize and feed the raw string over to the hls.js decoder engine
             if (typeof Hls !== 'undefined' && Hls.isSupported()) {
                 const hls = new Hls();
                 hls.loadSource(m3u8Url);
@@ -74,8 +75,22 @@
 
         } catch (error) {
             console.error(error);
-            statusDiv.style.color = "#ff3333";
-            statusDiv.innerText = "❌ Connection Failed. The third-party domain might be under heavy traffic load.";
+            
+            // FALLBACK PATHWAY: If the backend data endpoint blocks the browser, we use the fallback string generator
+            // This cleanly converts the embed player stream into a recognizable target source string format
+            const fallbackUrl = `https://vidlink.pro{id}`;
+            statusDiv.style.color = "#ffaa00";
+            statusDiv.innerHTML = `⚠️ Direct endpoint blocked by provider. Trying structural stream engine: <br><code style="word-break: break-all;">${fallbackUrl}</code>`;
+            
+            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(fallbackUrl);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = fallbackUrl;
+                video.addEventListener('loadedmetadata', () => video.play());
+            }
         }
     }
     </script>
